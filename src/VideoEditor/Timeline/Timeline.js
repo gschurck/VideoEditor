@@ -59,8 +59,11 @@ class Timeline {
     // this.cropAspectRatio = this.crop.width / this.crop.height;
     this.cropper = null;
     this.timeline = null;
+    this.isCropperActive = false;
+    this.pendingCropDimensions = null;
     // bind
     this.toggleCropperOff = this.toggleCropperOff.bind(this);
+    this.handleCropperUpdate = this.handleCropperUpdate.bind(this);
   }
 
   /**
@@ -122,6 +125,7 @@ class Timeline {
 
   async handleToggleCropper(toggle) {
     if (toggle) {
+      this.isCropperActive = true;
       if (this.cropper) {
         // show cropper
         // hide svg and video
@@ -137,9 +141,13 @@ class Timeline {
         this.cropper.show();
       }
     } else {
+      this.isCropperActive = false;
       // hide and apply cropper crop
       this.video.style.visibility = 'visible';
       this.applyCrop();
+      // ensure latest crop dimensions propagate to viewer once cropper closes
+      this.applyCropDimensions(this.getCrop(), { notify: true });
+      this.flushPendingCropDimensions();
     }
   }
 
@@ -270,25 +278,16 @@ class Timeline {
    * @returns {object} - {w,h,x,y,scale}
    */
   getCrop() {
-    if (!this.cropper) return {};
-    const {
-      points,
-      points: [aX, aY, bX, bY],
-      zoom,
-    } = this.cropper.getResult();
-    const w = bX - aX;
-    const h = bY - aY;
-    const x = aX;
-    const y = aY;
-    return { w, h, x, y, scale: zoom.toFixed(3) };
+    if (!this.cropper) {
+      return this.transformations?.crop || {};
+    }
+    return this.pointsToCrop();
   }
 
   getTransformations() {
     const crop = this.getCrop();
-    // const in = this.timeline.rangeSelector;
     const inMarker = this.rangeSelector.inMarker.getTimeIndex();
     const outMarker = this.rangeSelector.outMarker.getTimeIndex();
-    // get crop, time in / out
     return { crop, time: { in: inMarker, out: outMarker } };
   }
 
@@ -508,13 +507,8 @@ class Timeline {
       this.crop,
       this.cropAspectRatio
     );
-    // if the crop aspect ratio is the same as the video aspect ratio
-    if (cropWidth / cropHeight == this.video.videoWidth / this.video.videoHeight) {
-      cropWidth = '100%';
-      cropHeight = '100%';
-    }
     const viewport = { width: cropWidth, height: cropHeight };
-    const boundary = { width: '100%', height: '100%' };
+    const boundary = { width: containerWidth, height: containerHeight };
     this.cropper = new Cropper({
       src,
       el: cropContainer,
@@ -529,6 +523,8 @@ class Timeline {
           this.toggleCropperOff();
         }
       },
+      onUpdate: this.handleCropperUpdate,
+      enableResize: true,
     });
   }
 
@@ -590,6 +586,84 @@ class Timeline {
     // finally, render the info bar
     this.infoBar.render(container);
   }
+  handleCropperUpdate({ points, zoom }) {
+    // console.log('cropper update', points, zoom);
+    const crop = this.pointsToCrop(points, zoom);
+    if (!crop.w || !crop.h) {
+      return;
+    }
+    this.transformations = this.transformations || {};
+    this.transformations.crop = crop;
+    this.applyCropDimensions(crop);
+  }
+
+  pointsToCrop(points, zoom) {
+    if (!this.cropper) return {};
+    const result = points
+      ? { points, zoom }
+      : this.cropper.getResult();
+    if (!result?.points) {
+      return {};
+    }
+    const [rawAX, rawAY, rawBX, rawBY] = result.points;
+    const aX = parseFloat(rawAX);
+    const aY = parseFloat(rawAY);
+    const bX = parseFloat(rawBX);
+    const bY = parseFloat(rawBY);
+    if ([aX, aY, bX, bY].some((value) => Number.isNaN(value))) {
+      return {};
+    }
+    const w = bX - aX;
+    const h = bY - aY;
+    const x = aX;
+    const y = aY;
+    const scaleValue = typeof (zoom ?? result.zoom) === 'number' ? zoom ?? result.zoom : null;
+    return {
+      w,
+      h,
+      x,
+      y,
+      scale: scaleValue ? scaleValue.toFixed(3) : undefined,
+    };
+  }
+
+  applyCropDimensions(crop, options = {}) {
+    const width = parseFloat(crop.w);
+    const height = parseFloat(crop.h);
+    if (!width || !height) {
+      return;
+    }
+    const nextAspectRatio = width / height;
+    const prevAspectRatio = this.cropAspectRatio;
+    if (prevAspectRatio && Math.abs(prevAspectRatio - nextAspectRatio) < 0.0001) {
+      return;
+    }
+    this.crop = { width, height };
+    this.cropAspectRatio = nextAspectRatio;
+    const notify =
+      options.notify === true ? true : options.notify === false ? false : !this.isCropperActive;
+    if (notify) {
+      this.pendingCropDimensions = null;
+      this.notifyVideoEditorOfCrop({ width, height });
+    } else {
+      this.pendingCropDimensions = { width, height };
+    }
+  }
+
+  flushPendingCropDimensions() {
+    if (this.pendingCropDimensions) {
+      this.notifyVideoEditorOfCrop(this.pendingCropDimensions);
+      this.pendingCropDimensions = null;
+    }
+  }
+
+  notifyVideoEditorOfCrop({ width, height }) {
+    const videoEditor = context.getContext();
+    if (videoEditor?.handleCropDimensionsChange instanceof Function) {
+      videoEditor.handleCropDimensionsChange({ width, height });
+    }
+  }
+
 }
 
 export default Timeline;

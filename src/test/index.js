@@ -14,16 +14,18 @@ window.onload = function () {
 function initializeVideoEditor() {
   return new VideoEditor({
     // choose from 'small' or 'large' or add your own video source
-    src: videoSrcs.small,
+      src: videoSrcs.small,
+    // src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     // crop: { width: 3, height: 4 },
-    maxHeight: null,
+    // crop: {  },
+    //maxHeight: null,
     // optionally, add transformations
-    transformations: {
-      // crop: { h: 173, scale: '0.2', w: 343, x: '308', y: '153' },
-      // time: { in: 5, out: 10 },
-    },
+    // transformations: {
+    //   // crop: { h: 173, scale: '0.2', w: 343, x: '308', y: '153' },
+    //   // time: { in: 5, out: 10 },
+    // },
 
-    limit: { maxDuration: 5 },
+    //limit: { maxDuration: 5 },
     // optionally, a menu bar items with font awesome icons
     // menuBarButtons: {
     //   inlineEndButtons: {

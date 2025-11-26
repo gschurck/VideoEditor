@@ -726,6 +726,26 @@
         });
       }
 
+        // if (direction === 'v' && newHeight >= minSize && newHeight <= maxHeight) {
+        //     css(wrap, {
+        //         height: newHeight + 'px',
+        //     });
+        //
+        //     self.options.viewport.height += deltaY;
+        //     css(self.elements.viewport, {
+        //         height: self.options.viewport.height + 'px',
+        //     });
+        // } else if (direction === 'h' && newWidth >= minSize && newWidth <= maxWidth) {
+        //     css(wrap, {
+        //         width: newWidth + 'px',
+        //     });
+        //
+        //     self.options.viewport.width += deltaX;
+        //     css(self.elements.viewport, {
+        //         width: self.options.viewport.width + 'px',
+        //     });
+        // }
+
       _updateOverlay.call(self);
       _updateZoomLimits.call(self);
       console.log('*********#########update center point');

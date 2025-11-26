@@ -45,3 +45,7 @@
 .croppie-container {
   /* overflow: hidden; */
 }
+
+.croppie-container .cr-resizer-horisontal {
+  right: 0;
+}

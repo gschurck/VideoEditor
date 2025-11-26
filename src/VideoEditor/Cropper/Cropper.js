@@ -27,8 +27,9 @@ class Cropper {
     points,
     scale,
     onClickOutside,
+    onUpdate,
     enableOrientation = false,
-    enableResize = false,
+    enableResize = true,
   }) {
     if (!el) {
       throw new TypeError('Cropper element cannot be null');
@@ -68,6 +69,7 @@ class Cropper {
     this.img = el.querySelector('img');
     // callbacks
     this.onClickOutside = onClickOutside;
+    this.onUpdate = onUpdate;
     // bind
     this.touchdown = this.touchdown.bind(this);
     this.touchup = this.touchup.bind(this);
@@ -188,6 +190,9 @@ class Cropper {
     this.points = points;
     this.zoom = zoom;
     this.orientation = orientation;
+    if (this.onUpdate instanceof Function) {
+      this.onUpdate({ points, zoom, orientation });
+    }
   }
   handleZoomRangeChange(event) {
     const {
@@ -203,7 +208,9 @@ class Cropper {
 
   touchdown(event) {
     const { target } = event;
-    if (target.closest('.cropper') == null) {
+    const withinCropper =
+      target && typeof target.closest === 'function' ? target.closest('.cropper') : null;
+    if (!withinCropper) {
       if (this.onClickOutside instanceof Function) {
         this.onClickOutside(event);
       }
@@ -226,7 +233,9 @@ class Cropper {
    */
   touchup(event) {
     const { target } = event;
-    if (target.closest('.cropper') == null) {
+    const withinCropper =
+      target && typeof target.closest === 'function' ? target.closest('.cropper') : null;
+    if (!withinCropper) {
       event.preventDefault();
       return false;
     }

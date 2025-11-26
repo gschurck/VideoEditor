@@ -118,6 +118,8 @@ An object with the width and height of the crop.
 
 Example: { width: 16, height: 9 }
 
+> Tip: Use the "Crop" button in the UI to toggle the cropper and then drag any edge or corner handle to resize the crop rectangle dynamically. The resized width and height are persisted automatically and returned through `onSave`/`save()`.
+
 ### transformations
 
 @type object

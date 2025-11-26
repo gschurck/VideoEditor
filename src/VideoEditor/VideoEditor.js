@@ -175,6 +175,7 @@ class VideoEditor {
     this.crop = crop;
     this.transformations = transformations;
     this.video = null;
+    this.cropOverlay = null;
     this.videoEditorContainer = this.createVideoEditorContainer();
     // maxHeight restricts the responsive height of the video editor, which
     // is usually set as a percentage based on the window height
@@ -201,6 +202,8 @@ class VideoEditor {
       onLoadMetaData: this.handleLoadMetaData.bind(this),
       onViewerResize: this.handleViewerResize.bind(this),
     });
+    this.viewer.crop = crop;
+    this.video = this.viewer.video;
     this.timeline = new Timeline({
       onReady: this.handleTimelineReady.bind(this),
     });
@@ -392,10 +395,34 @@ class VideoEditor {
   }
 
   appendCropOverlay() {
+    if (!this.video || !this.crop) {
+      return;
+    }
     const container = this.video.closest('.video-container');
+    if (!container) {
+      return;
+    }
+    if (this.cropOverlay?.isConnected) {
+      this.cropOverlay.remove();
+    }
     const viewBox = { width: this.video.videoWidth, height: this.video.videoHeight };
-    const svgOverlay = createCropSVG(this.crop, viewBox);
-    container.append(svgOverlay);
+    this.cropOverlay = createCropSVG(this.crop, viewBox);
+    this.cropOverlay.classList.add('video-editor-crop-overlay');
+    container.append(this.cropOverlay);
+  }
+
+  handleCropDimensionsChange({ width, height }) {
+    if (!width || !height) {
+      return;
+    }
+    this.crop = { width, height };
+    if (this.viewer) {
+      this.viewer.crop = this.crop;
+      this.viewer.updateViewerContainerDimensions();
+    }
+    if (this.video) {
+      this.appendCropOverlay();
+    }
   }
 
   async render(container) {
